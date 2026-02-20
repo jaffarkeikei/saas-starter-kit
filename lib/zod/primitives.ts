@@ -232,14 +232,27 @@ export const url = z
     maxLengthPolicies.domain,
     `URL should have at most ${maxLengthPolicies.domain} characters`
   )
-  .refine((url) => {
-    if (url) {
-      if (url.startsWith('https://') || url.startsWith('http://')) {
-        return true;
+  .refine(
+    (url) => {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === 'https:') {
+          return true;
+        }
+        // Allow HTTP only in non-production environments (e.g. local dev)
+        if (
+          parsed.protocol === 'http:' &&
+          process.env.NODE_ENV !== 'production'
+        ) {
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
       }
-    }
-    return false;
-  });
+    },
+    { message: 'Webhook URL must use HTTPS' }
+  );
 
 export const inviteToken = z
   .string({
